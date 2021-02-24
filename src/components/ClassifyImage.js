@@ -18,8 +18,12 @@ const ClassifyImage = () => {
   const [predicted, setPredicted] = useState(false);
 
   const loadImage = event => {
+    // get file
     const image = event.target.files[0];
     setImageURL(window.URL.createObjectURL(image));
+    // get url. doesnt work, needs to be fixed line 39...
+    // const url = event.target.name;
+    // setImageURL(url);
   };
   /*******
    * Here we have an asynchronous function called classifyImage.
@@ -36,7 +40,7 @@ const ClassifyImage = () => {
     classifier.predict(image, 1, (err, results) => {
       console.log("results", results);
       setPredictionLabel(results[0].label);
-      setPredictionConfidence(results[0].confidence);
+      setPredictionConfidence(results[0].confidence.toFixed(5));
       setPredicted(true);
 
       // this.setState({
@@ -48,17 +52,21 @@ const ClassifyImage = () => {
   };
   return (
     <div className="App">
+      {/* accepts file type image */}
       <input type="file" accept="image/*" onChange={loadImage} />
+      {/* <input type="text" name="url" onChange={loadImage} /> */}
       {imageURL && (
         <div>
           <img id="image" src={imageURL} alt="to be classified" height={500} />
-          <button onClick={classifyImage}>Classify</button>
+          <div>
+            <button onClick={classifyImage}>Classify</button>
+          </div>
         </div>
       )}
       {predicted && (
         <p>
           The app is {predictionConfidence * 100}% sure that this is{" "}
-          {predictionLabel.split(",").join(" or ")}
+          {predictionLabel.split(",").join(" or a ")}
         </p>
       )}
     </div>
