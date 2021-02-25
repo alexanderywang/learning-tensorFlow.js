@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 import * as tf from "@tensorflow/tfjs";
 
+/****************
+     * model.fit doesn't seem to be working. Uncaught (in promise) TypeError: Cannot read property 'shape' of undefined
+
+     *******************/
+
+
 /****
  * npm install @tensorflow/tfjs
  * Train a model with input data
@@ -42,15 +48,40 @@ const Regression = () => {
       console.log("not enough values");
       return;
     }
-    console.log(xValues, yValues, xInputShape, yInputShape, guess);
+    // console.log(xValues, yValues, xInputShape, yInputShape, guess);
     learnLinear();
   };
 
   const learnLinear = async () => {
     // define model for linear regression
     const model = tf.sequential();
-    model.add(tf.layers.dense({ units: 1, inputShape: [1] }));
+    // model.add(tf.layers.dense({ units: 1, inputShape: [1] }));
+    /*
+    The prediction values differs at each refresh because at each refresh there is a new training. The model weights are initialized with random values. During the training, the weights can either converge to optimum values or diverge. It depends on many parameters. Actually even the best model will not always converge at a fixed number of training epochs.
+
+To always have the same value, the initial values of the weights can be set with fixed data. But again how to find this data that will lead to a best prediction ? That's not always easy to find those weights. A simple way to initialize a layer weights would be to use the kernelInitializer of the layer.
+
+This new layer will have its weights initialized with 0. It is possible to use ones as well. Others initializers are possible. With fixed weights, the prediction will not change. But in practice weights are rarely initialized because of what is mentioned above unless one know for a certainty what possible values will lead to a good accuracy. What is done on the other hand is to track the model accuracy and create a checkpoint once there is a model with a satisfying accuracy.
+*/
+    model.add(
+      tf.layers.dense({
+        inputShape: [1],
+        units: 1,
+        useBias: true,
+        kernelInitializer: "zeros"
+      })
+    );
+
+    // const model = tf.sequential({
+    //   layers: [tf.layers.dense({ units: 1, inputShape: [1] })]
+    // });
+
     // prepare model for training: specify loss and optimizer
+    // console.log("created?", JSON.stringify(model.outputs[0].shape));
+    // tf.tensor([1, 2, 3, 4]).print();
+    // tf.tensor([1, 2, 3, 4], [2, 2]).print();
+    // tf.tensor2d([1, 2, 3, 4], [4, 1]).print();
+
     model.compile({
       loss: "meanSquaredError",
       optimizer: "sgd"
@@ -58,21 +89,31 @@ const Regression = () => {
 
     // tensors. synthetic data for training
     // hardcoded:
-    // const xs = tf.tensor2d([-1, 0, 1, 2, 3, 4], [6, 1]); // xvalues, shape of the array 6 rows and 1 column
-    // const ys = tf.tensor2d([-3, -1, 1, 3, 5, 7], [6, 1]);
+    const xs = tf.tensor2d([-1, 0, 1, 2, 3, 4], [6, 1]); // xvalues, shape of the array 6 rows and 1 column
+    const ys = tf.tensor2d([-3, -1, 1, 3, 5, 7], [6, 1]);
     //dynamic
-    const xs = tf.tensor2d(xValues, [xValues.length, 1]);
-    const ys = tf.tensor2d(yValues, [yValues.length, 1]);
+    // const xs = tf.tensor2d(xValues, [xValues.length, 1]);
+    // const ys = tf.tensor2d(yValues, [yValues.length, 1]);
+
+    /****************
+     * model.fit doesn't seem to be working. Uncaught (in promise) TypeError: Cannot read property 'shape' of undefined
+
+     */
+
+    await model.fit(xs, ys, { epochs: 250 });
+    const pred = model.predict(tf.tensor2d([10], [1, 1]));
+    console.log("prediction:", pred, JSON.stringify(pred));
+    setPrediction(pred);
     console.log("model:", model);
 
-    try {
-      await model.fit(xs, ys, { epochs: 250 });
-      const pred = model.predict(tf.tensor2d([guess], [1, 1]));
-      console.log("prediction:", pred);
-      setPrediction(pred);
-    } catch (err) {
-      console.log(err);
-    }
+    // try {
+    //   await model.fit(xs, ys, { epochs: 250 });
+    //   const pred = await model.predict(tf.tensor2d([guess], [1, 1]));
+    //   console.log("prediction:", JSON.stringify(pred));
+    //   setPrediction(pred);
+    // } catch (err) {
+    //   console.log(err);
+    // }
     // train the model. inputs are xs, outputs are ys, epochs are # of iterations
     // await model.fit(xs, ys, { epochs: 250 });
 
@@ -113,7 +154,7 @@ const Regression = () => {
         <br></br>
       </form>
       <br></br>
-      <div>Predicted value: {prediction}</div>
+      {prediction && <div>Predicted value: `${prediction.id}`</div>}
     </div>
   );
 };
